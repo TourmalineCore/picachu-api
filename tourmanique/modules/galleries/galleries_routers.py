@@ -1,8 +1,8 @@
 from http import HTTPStatus
-import random
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
+from pydantic import ValidationError
 
 from tourmanique.domain import Gallery
 from tourmanique.helpers.s3_helper import S3Helper
@@ -52,7 +52,11 @@ def add_gallery():
 @jwt_required()
 def rename_gallery(gallery_id):
     current_user_id = get_jwt_identity()
-    validation_param = ValidationGalleryName(gallery_name=request.json.get('newName'))
+    try:
+        validation_param = ValidationGalleryName(gallery_name=request.json.get('newName'))
+    except ValidationError as err:
+        return jsonify(err.errors()), HTTPStatus.BAD_REQUEST
+
     if not GetGalleryQuery.by_id(gallery_id):
         return jsonify({'msg': 'Not Found'}), HTTPStatus.NOT_FOUND
     if not IsUserHasAccess().to_gallery(current_user_id, gallery_id):

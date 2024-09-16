@@ -1,3 +1,6 @@
+import datetime
+
+from flask_jwt_extended import create_access_token
 from sqlalchemy import create_engine, delete
 from sqlalchemy.orm import sessionmaker
 
@@ -9,6 +12,7 @@ import pytest
 from tourmanique.config.config_provider import TestConfigProvider
 from tourmanique.domain import Gallery
 from tourmanique.domain.data_access_layer.db import db
+from tourmanique.modules.auth.auth_routes import USER_ID
 
 logging.basicConfig()
 logger = logging.getLogger()
@@ -25,6 +29,13 @@ def flask_app():
     yield client
 
     ctx.pop()
+
+
+@pytest.fixture
+def access_token(flask_app):
+    access_token = create_access_token(identity=USER_ID,
+                                       expires_delta=datetime.timedelta(days=30))
+    return access_token
 
 
 @pytest.fixture
@@ -49,15 +60,16 @@ def db_session(flask_app, database_uri):
 
 @pytest.fixture
 def db_with_test_data(db_session):
-    galleries_id = ['1',
-                    '2',
-                    '3']
     galleries_names = ['gallery_1',
                        'gallery_2',
                        'gallery_3']
     galleries_user_id = ['1',
                          '1',
                          '2']
+    galleries_deleted_at_utc = [None,
+                         '2023-06-19 06:27:04.065',
+                         None]
+    galleries_id = [i + 1 for i in range(len(galleries_names))]
 
     with db_session() as session:
         session.execute(delete(Gallery))
@@ -65,10 +77,14 @@ def db_with_test_data(db_session):
 
         logger.info("Deleted test data from the database.")
 
-        for galleries_id, name, user_id in zip(galleries_id, galleries_names, galleries_user_id):
+        for galleries_id, name, user_id, deleted_at_utc in zip(galleries_id,
+                                                               galleries_names,
+                                                               galleries_user_id,
+                                                               galleries_deleted_at_utc):
             session.add(Gallery(id=galleries_id,
                                 user_id=user_id,
-                                name=name))
+                                name=name,
+                                deleted_at_utc=deleted_at_utc))
         session.commit()
 
         logger.info("Added test data to the database.")
