@@ -6,7 +6,7 @@ import logging
 
 import pytest
 
-from tourmanique.config.config_provider import TestConfigProvider
+from tourmanique.config.config_provider import ConfigProvider
 from tourmanique.domain import Gallery
 from tourmanique.domain.data_access_layer.db import db
 
@@ -17,7 +17,7 @@ logger.setLevel(logging.INFO)
 
 @pytest.fixture
 def flask_app():
-    app = create_app(TestConfigProvider)
+    app = create_app(ConfigProvider)
     client = app.test_client()
     ctx = app.test_request_context()
     ctx.push()
@@ -29,6 +29,7 @@ def flask_app():
 
 @pytest.fixture
 def database_uri(flask_app):
+    print('******************************', flask_app.application.config.get('SQLALCHEMY_DATABASE_URI'))
     return flask_app.application.config.get('SQLALCHEMY_DATABASE_URI')
 
 
